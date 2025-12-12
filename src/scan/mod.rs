@@ -4,8 +4,7 @@ mod error;
 pub use args::ScanArgs;
 pub use error::ScanError;
 
-use ast_grep_core::language::Language;
-use ast_grep_language::{LanguageExt, SupportLang};
+use ast_grep_language::{Language, LanguageExt, SupportLang};
 use regex::Regex;
 use serde::Serialize;
 use std::collections::{BTreeMap, HashSet};
@@ -66,18 +65,16 @@ fn scan_file(
         for cap in pattern.captures_iter(&text) {
             let slug = format!(
                 "{}-{}",
-                cap.get(1).map(|m| m.as_str()).unwrap_or_default(),
-                cap.get(2).map(|m| m.as_str()).unwrap_or_default()
+                cap.get(1).unwrap().as_str(),
+                cap.get(2).unwrap().as_str()
             );
 
-            if !seen.insert((slug.clone(), line)) {
-                continue;
+            if seen.insert((slug.clone(), line)) {
+                results.entry(slug).or_default().push(Entry {
+                    file: relative.to_path_buf(),
+                    line,
+                });
             }
-
-            results.entry(slug).or_default().push(Entry {
-                file: relative.to_path_buf(),
-                line,
-            });
         }
     }
 
@@ -189,8 +186,11 @@ mod tests {
     fn python_docstring_not_parsed_as_comment() {
         // Python docstrings are string nodes, not comment nodes in tree-sitter
         // They won't be found by our comment-based scanner
-        let file = create_temp_file(".py", r#""""REQ-100: python docstring"""
-def foo(): pass"#);
+        let file = create_temp_file(
+            ".py",
+            r#""""REQ-100: python docstring"""
+def foo(): pass"#,
+        );
         let root = file.path().parent().unwrap();
         let results = scan_files(root, &[file.path().to_path_buf()], &scan_args("REQ")).unwrap();
 
@@ -236,7 +236,10 @@ def foo(): pass"#);
 
     #[test]
     fn go_comment() {
-        let file = create_temp_file(".go", "package main\n\n// REQ-300: go comment\nfunc main() {}");
+        let file = create_temp_file(
+            ".go",
+            "package main\n\n// REQ-300: go comment\nfunc main() {}",
+        );
         let root = file.path().parent().unwrap();
         let results = scan_files(root, &[file.path().to_path_buf()], &scan_args("REQ")).unwrap();
 
@@ -536,8 +539,7 @@ def foo(): pass"#);
     fn slug_with_mixed_case() {
         let file = create_temp_file(".rs", "/// MySlug-42: mixed case\nfn x() {}");
         let root = file.path().parent().unwrap();
-        let results =
-            scan_files(root, &[file.path().to_path_buf()], &scan_args("MySlug")).unwrap();
+        let results = scan_files(root, &[file.path().to_path_buf()], &scan_args("MySlug")).unwrap();
 
         assert!(results.contains_key("MySlug-42"));
     }
@@ -546,8 +548,7 @@ def foo(): pass"#);
     fn slug_with_numbers() {
         let file = create_temp_file(".rs", "/// ABC123-456: numbers in slug\nfn x() {}");
         let root = file.path().parent().unwrap();
-        let results =
-            scan_files(root, &[file.path().to_path_buf()], &scan_args("ABC123")).unwrap();
+        let results = scan_files(root, &[file.path().to_path_buf()], &scan_args("ABC123")).unwrap();
 
         assert!(results.contains_key("ABC123-456"));
     }

@@ -72,7 +72,7 @@ fn parse_gitattributes(root: &Path) -> Excludes {
             vendored.push(pattern.clone());
         }
         if line.contains("linguist-generated") {
-            generated.push(pattern);
+            generated.push(pattern.clone());
         }
     }
 
