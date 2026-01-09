@@ -16,6 +16,7 @@ name = "tracy"
 path = "src/main.rs"
 
 [dependencies]
+ast-grep-core = "0.40.0"
 ast-grep-language = { version = "0.40.0", features = ["builtin-parser"] }
 clap = { version = "4.5.53", features = ["derive"] }
 ignore = "0.4.25"
