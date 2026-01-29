@@ -172,7 +172,8 @@ pub fn extract_block_context<D: Doc>(
     }
 
     // Find the comment block boundaries by walking up and down
-    let (block_start, block_end) = find_comment_block_bounds(comment_line, &comment_lines, source_lines);
+    let (block_start, block_end) =
+        find_comment_block_bounds(comment_line, &comment_lines, source_lines);
 
     // Look for code ABOVE the block (first line with non-comment content)
     let above = find_context_above(block_start, &line_to_nodes, source_lines);
@@ -211,7 +212,8 @@ fn find_comment_block_bounds(
     if start_line > 0 {
         let mut line = start_line - 1;
         loop {
-            if line < source_lines.len() && is_comment_only_line(line, comment_lines, source_lines) {
+            if line < source_lines.len() && is_comment_only_line(line, comment_lines, source_lines)
+            {
                 block_start = line;
             } else {
                 break;
@@ -326,15 +328,15 @@ fn find_context_below(
     // Walk down to find the first line with non-comment, non-empty content
     let mut line = block_end + 1;
     while line < source_lines.len() {
-        if let Some(nodes) = line_to_nodes.get(&line) {
-            if let Some(best) = nodes.iter().max_by_key(|n| n.priority) {
-                return Some(CodeContext {
-                    kind: best.kind.clone(),
-                    name: best.name.clone(),
-                    text: best.text.clone(),
-                    line: line + 1, // 1-indexed
-                });
-            }
+        if let Some(nodes) = line_to_nodes.get(&line)
+            && let Some(best) = nodes.iter().max_by_key(|n| n.priority)
+        {
+            return Some(CodeContext {
+                kind: best.kind.clone(),
+                name: best.name.clone(),
+                text: best.text.clone(),
+                line: line + 1, // 1-indexed
+            });
         }
 
         // Check if line has any content
@@ -368,15 +370,15 @@ fn find_inline_context(
     comment_line: usize,
     line_to_nodes: &HashMap<usize, Vec<NodeInfo>>,
 ) -> Option<CodeContext> {
-    if let Some(nodes) = line_to_nodes.get(&comment_line) {
-        if let Some(best) = nodes.iter().max_by_key(|n| n.priority) {
-            return Some(CodeContext {
-                kind: best.kind.clone(),
-                name: best.name.clone(),
-                text: best.text.clone(),
-                line: comment_line + 1, // 1-indexed
-            });
-        }
+    if let Some(nodes) = line_to_nodes.get(&comment_line)
+        && let Some(best) = nodes.iter().max_by_key(|n| n.priority)
+    {
+        return Some(CodeContext {
+            kind: best.kind.clone(),
+            name: best.name.clone(),
+            text: best.text.clone(),
+            line: comment_line + 1, // 1-indexed
+        });
     }
     None
 }
@@ -422,18 +424,35 @@ fn is_scope_kind(kind: &str) -> bool {
 
 fn kind_priority(kind: &str) -> i32 {
     match kind {
-        "function_item" | "function_definition" | "function_declaration" | "method_definition"
+        "function_item"
+        | "function_definition"
+        | "function_declaration"
+        | "method_definition"
         | "method_declaration" => 100,
 
-        "struct_item" | "struct_definition" | "class_declaration" | "class_definition"
-        | "interface_declaration" | "enum_item" | "enum_declaration" | "trait_item"
-        | "type_alias" | "type_item" => 90,
+        "struct_item"
+        | "struct_definition"
+        | "class_declaration"
+        | "class_definition"
+        | "interface_declaration"
+        | "enum_item"
+        | "enum_declaration"
+        | "trait_item"
+        | "type_alias"
+        | "type_item" => 90,
 
         "impl_item" => 85,
 
-        "let_declaration" | "const_declaration" | "const_item" | "static_item"
-        | "variable_declaration" | "lexical_declaration" | "short_var_declaration"
-        | "var_declaration" | "field_declaration" | "local_variable_declaration" => 80,
+        "let_declaration"
+        | "const_declaration"
+        | "const_item"
+        | "static_item"
+        | "variable_declaration"
+        | "lexical_declaration"
+        | "short_var_declaration"
+        | "var_declaration"
+        | "field_declaration"
+        | "local_variable_declaration" => 80,
 
         "assignment_expression" | "assignment_statement" | "assignment" => 70,
 
@@ -460,27 +479,28 @@ fn extract_name<D: Doc>(node: &Node<D>, kind: &str) -> Option<String> {
             node.field("name").map(|n| n.text().to_string())
         }
 
-        "impl_item" => {
-            node.field("type")
-                .or_else(|| node.field("trait"))
-                .map(|n| first_line(n.text()))
-        }
+        "impl_item" => node
+            .field("type")
+            .or_else(|| node.field("trait"))
+            .map(|n| first_line(n.text())),
 
         "let_declaration" => node.field("pattern").map(|n| n.text().to_string()),
 
         "use_declaration" => node.field("argument").map(|n| first_line(n.text())),
 
         // JavaScript/TypeScript
-        "function_declaration" | "class_declaration" | "interface_declaration"
+        "function_declaration"
+        | "class_declaration"
+        | "interface_declaration"
         | "method_definition" => node.field("name").map(|n| n.text().to_string()),
 
         "variable_declaration" | "lexical_declaration" => {
             for child in node.children() {
                 let child_kind: &str = &child.kind();
-                if child_kind == "variable_declarator" {
-                    if let Some(name) = child.field("name") {
-                        return Some(name.text().to_string());
-                    }
+                if child_kind == "variable_declarator"
+                    && let Some(name) = child.field("name")
+                {
+                    return Some(name.text().to_string());
                 }
             }
             None
@@ -495,19 +515,18 @@ fn extract_name<D: Doc>(node: &Node<D>, kind: &str) -> Option<String> {
 
         "assignment" => node.field("left").map(|n| first_line(n.text())),
 
-        "decorated_definition" => {
-            node.field("definition")
-                .and_then(|def| def.field("name").map(|n| n.text().to_string()))
-        }
+        "decorated_definition" => node
+            .field("definition")
+            .and_then(|def| def.field("name").map(|n| n.text().to_string())),
 
         // Go
         "type_declaration" => {
             for child in node.children() {
                 let child_kind: &str = &child.kind();
-                if child_kind == "type_spec" {
-                    if let Some(name) = child.field("name") {
-                        return Some(name.text().to_string());
-                    }
+                if child_kind == "type_spec"
+                    && let Some(name) = child.field("name")
+                {
+                    return Some(name.text().to_string());
                 }
             }
             None
@@ -520,10 +539,9 @@ fn extract_name<D: Doc>(node: &Node<D>, kind: &str) -> Option<String> {
         // Java
         "method_declaration" => node.field("name").map(|n| n.text().to_string()),
 
-        "field_declaration" | "local_variable_declaration" => {
-            node.field("declarator")
-                .and_then(|d| d.field("name").map(|n| n.text().to_string()))
-        }
+        "field_declaration" | "local_variable_declaration" => node
+            .field("declarator")
+            .and_then(|d| d.field("name").map(|n| n.text().to_string())),
 
         // Call expressions
         "call_expression" => node

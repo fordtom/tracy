@@ -1,11 +1,11 @@
 [package]
 name = "tracy"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "A tool for tracking in-code markers for requirement traceability"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/fordtom/tracy"
+repository = "https://github.com/tomrford/tracy"
 categories = ["command-line-utilities"]
 keywords = ["traceability", "requirements", "tracing"]
 
