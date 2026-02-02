@@ -7,6 +7,7 @@ use serde::Serialize;
 pub enum OutputFormat {
     Json,
     Jsonl,
+    Csv,
 }
 
 pub fn format_output(
@@ -17,6 +18,7 @@ pub fn format_output(
     match format {
         OutputFormat::Json => format_json(meta, results),
         OutputFormat::Jsonl => format_jsonl(meta, results),
+        OutputFormat::Csv => Ok(format_csv(meta, results)),
     }
 }
 
@@ -66,6 +68,82 @@ fn format_jsonl(meta: Option<&GitMeta>, results: &ScanResult) -> Result<String, 
     }
 
     Ok(lines.join("\n"))
+}
+
+fn format_csv(meta: Option<&GitMeta>, results: &ScanResult) -> String {
+    let mut lines = Vec::new();
+
+    let mut header = vec![
+        "requirement_id",
+        "file",
+        "line",
+        "comment_text",
+        "above",
+        "below",
+        "inline",
+        "scope",
+    ];
+    if meta.is_some() {
+        header.extend(["repo_root", "head_sha", "head_ref", "is_dirty"]);
+    }
+    lines.push(header.join(","));
+
+    for (requirement_id, entries) in results {
+        for entry in entries {
+            let above = entry
+                .above
+                .as_ref()
+                .map(|c| serde_json::to_string(c).unwrap_or_default())
+                .unwrap_or_default();
+            let below = entry
+                .below
+                .as_ref()
+                .map(|c| serde_json::to_string(c).unwrap_or_default())
+                .unwrap_or_default();
+            let inline = entry
+                .inline
+                .as_ref()
+                .map(|c| serde_json::to_string(c).unwrap_or_default())
+                .unwrap_or_default();
+            let scope = if entry.scope.is_empty() {
+                String::new()
+            } else {
+                serde_json::to_string(&entry.scope).unwrap_or_default()
+            };
+
+            let mut row = vec![
+                requirement_id.to_string(),
+                entry.file.display().to_string(),
+                entry.line.to_string(),
+                entry.comment_text.clone(),
+                above,
+                below,
+                inline,
+                scope,
+            ];
+
+            if let Some(meta) = meta {
+                row.push(meta.repo_root.display().to_string());
+                row.push(meta.head_sha.clone());
+                row.push(meta.head_ref.clone().unwrap_or_default());
+                row.push(meta.is_dirty.to_string());
+            }
+
+            lines.push(row.iter().map(|v| csv_escape(v)).collect::<Vec<_>>().join(","));
+        }
+    }
+
+    lines.join("\n")
+}
+
+fn csv_escape(value: &str) -> String {
+    let needs_quotes = value
+        .chars()
+        .any(|c| matches!(c, ',' | '"' | '\n' | '\r'));
+    if !needs_quotes {
+        return value.to_string();
+    }
+    format!("\"{}\"", value.replace('"', "\"\""))
 }
 
 #[cfg(test)]
@@ -141,5 +219,19 @@ mod tests {
         assert_eq!(match_line["requirement_id"], "REQ-1");
         assert!(match_line["entry"].is_object());
     }
-}
 
+    #[test]
+    fn csv_escapes_commas_and_quotes() {
+        let mut results = one_result();
+        results.get_mut("REQ-1").unwrap()[0].comment_text = "// REQ-1, \"quoted\"".to_string();
+
+        let out = format_output(OutputFormat::Csv, None, &results).unwrap();
+        let lines: Vec<&str> = out.split('\n').collect();
+        assert_eq!(lines[0], "requirement_id,file,line,comment_text,above,below,inline,scope");
+        assert!(
+            lines[1].contains("\"// REQ-1, \"\"quoted\"\"\""),
+            "expected csv escaping, got: {}",
+            lines[1]
+        );
+    }
+}
