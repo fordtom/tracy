@@ -25,7 +25,11 @@ fn run() -> Result<(), TracyError> {
     let cli = Args::parse();
 
     let cwd = std::env::current_dir()?;
-    let search_start = cli.root.clone().unwrap_or_else(|| cwd.clone());
+    let search_start = cli
+        .root
+        .clone()
+        .map(|p| if p.is_absolute() { p } else { cwd.join(p) })
+        .unwrap_or_else(|| cwd.clone());
 
     let config_path = if cli.no_config {
         None
@@ -36,7 +40,7 @@ fn run() -> Result<(), TracyError> {
             cwd.join(path)
         })
     } else {
-        find_config(&search_start)
+        find_config(&search_start).map(|p| if p.is_absolute() { p } else { cwd.join(p) })
     };
 
     let (config, config_dir) = match config_path {
