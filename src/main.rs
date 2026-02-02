@@ -30,7 +30,11 @@ fn run() -> Result<(), TracyError> {
     let config_path = if cli.no_config {
         None
     } else if let Some(path) = cli.config.clone() {
-        Some(if path.is_absolute() { path } else { cwd.join(path) })
+        Some(if path.is_absolute() {
+            path
+        } else {
+            cwd.join(path)
+        })
     } else {
         find_config(&search_start)
     };

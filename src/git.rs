@@ -67,7 +67,10 @@ pub fn add_blame(scan_root: &Path, results: &mut ScanResult) -> Result<(), GitEr
     let mut by_file: BTreeMap<PathBuf, BTreeSet<usize>> = BTreeMap::new();
     for entries in results.values() {
         for entry in entries {
-            by_file.entry(entry.file.clone()).or_default().insert(entry.line);
+            by_file
+                .entry(entry.file.clone())
+                .or_default()
+                .insert(entry.line);
         }
     }
 
@@ -125,7 +128,7 @@ fn blame_range(
     let range = format!("{start_line},{end_line}");
     let file = file.to_string_lossy().to_string();
 
-    let args = vec![
+    let args = [
         "blame".to_string(),
         "--line-porcelain".to_string(),
         "-L".to_string(),
@@ -157,14 +160,17 @@ fn parse_blame_porcelain(output: &str) -> BTreeMap<usize, BlameInfo> {
             Some(n) => n,
             None => continue,
         };
-        let group_len = parts.next().and_then(|s| s.parse::<usize>().ok()).unwrap_or(1);
+        let group_len = parts
+            .next()
+            .and_then(|s| s.parse::<usize>().ok())
+            .unwrap_or(1);
 
         let mut author = None;
         let mut author_mail = None;
         let mut author_time = None;
         let mut summary = None;
 
-        while let Some(line) = iter.next() {
+        for line in iter.by_ref() {
             if line.starts_with('\t') {
                 break;
             }
@@ -258,13 +264,7 @@ mod tests {
         git_in(dir.path(), &["add", "file.txt"]).unwrap();
         git_in(
             dir.path(),
-            &[
-                "commit",
-                "-m",
-                "first",
-                "--date",
-                "2000-01-01T00:00:00Z",
-            ],
+            &["commit", "-m", "first", "--date", "2000-01-01T00:00:00Z"],
         )
         .unwrap();
         let first_sha = git(dir.path(), &["rev-parse", "HEAD"]).unwrap();
@@ -273,13 +273,7 @@ mod tests {
         git_in(dir.path(), &["add", "file.txt"]).unwrap();
         git_in(
             dir.path(),
-            &[
-                "commit",
-                "-m",
-                "second",
-                "--date",
-                "2000-01-01T00:00:01Z",
-            ],
+            &["commit", "-m", "second", "--date", "2000-01-01T00:00:01Z"],
         )
         .unwrap();
         let second_sha = git(dir.path(), &["rev-parse", "HEAD"]).unwrap();

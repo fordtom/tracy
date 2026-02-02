@@ -52,19 +52,23 @@ fn parse_globs(args: &FilterArgs) -> Result<GlobFilters, FilterError> {
     let include = args
         .include
         .iter()
-        .map(|g| glob::Pattern::new(g).map_err(|e| FilterError::InvalidGlob {
-            pattern: g.clone(),
-            source: e,
-        }))
+        .map(|g| {
+            glob::Pattern::new(g).map_err(|e| FilterError::InvalidGlob {
+                pattern: g.clone(),
+                source: e,
+            })
+        })
         .collect::<Result<Vec<_>, _>>()?;
 
     let exclude = args
         .exclude
         .iter()
-        .map(|g| glob::Pattern::new(g).map_err(|e| FilterError::InvalidGlob {
-            pattern: g.clone(),
-            source: e,
-        }))
+        .map(|g| {
+            glob::Pattern::new(g).map_err(|e| FilterError::InvalidGlob {
+                pattern: g.clone(),
+                source: e,
+            })
+        })
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(GlobFilters { include, exclude })

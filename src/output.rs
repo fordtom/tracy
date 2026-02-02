@@ -139,7 +139,12 @@ fn format_csv(meta: Option<&GitMeta>, results: &ScanResult) -> String {
                 row.push(meta.is_dirty.to_string());
             }
 
-            lines.push(row.iter().map(|v| csv_escape(v)).collect::<Vec<_>>().join(","));
+            lines.push(
+                row.iter()
+                    .map(|v| csv_escape(v))
+                    .collect::<Vec<_>>()
+                    .join(","),
+            );
         }
     }
 
@@ -147,9 +152,7 @@ fn format_csv(meta: Option<&GitMeta>, results: &ScanResult) -> String {
 }
 
 fn csv_escape(value: &str) -> String {
-    let needs_quotes = value
-        .chars()
-        .any(|c| matches!(c, ',' | '"' | '\n' | '\r'));
+    let needs_quotes = value.chars().any(|c| matches!(c, ',' | '"' | '\n' | '\r'));
     if !needs_quotes {
         return value.to_string();
     }

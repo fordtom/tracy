@@ -19,7 +19,11 @@ pub struct Args {
     #[arg(long, value_enum, help = "Output format")]
     pub format: Option<OutputFormat>,
 
-    #[arg(long, value_name = "PATH", help = "Path to config file (default: search for tracy.toml)")]
+    #[arg(
+        long,
+        value_name = "PATH",
+        help = "Path to config file (default: search for tracy.toml)"
+    )]
     pub config: Option<PathBuf>,
 
     #[arg(long, help = "Disable config file loading")]
@@ -72,13 +76,12 @@ pub fn resolve_args(
     let root = match (cli.root, config.root) {
         (Some(root), _) => root,
         (None, Some(root)) => resolve_path(base_dir, root),
-        (None, None) => config_dir.map(|d| d.to_path_buf()).unwrap_or_else(|| PathBuf::from(".")),
+        (None, None) => config_dir
+            .map(|d| d.to_path_buf())
+            .unwrap_or_else(|| PathBuf::from(".")),
     };
 
-    let format = cli
-        .format
-        .or(config.format)
-        .unwrap_or(OutputFormat::Json);
+    let format = cli.format.or(config.format).unwrap_or(OutputFormat::Json);
 
     let output = match (cli.output, config.output) {
         (Some(output), _) => Some(output),
@@ -103,9 +106,12 @@ pub fn resolve_args(
     };
 
     let filter = FilterArgs {
-        include_vendored: cli.filter.include_vendored || config.filter.include_vendored.unwrap_or(false),
-        include_generated: cli.filter.include_generated || config.filter.include_generated.unwrap_or(false),
-        include_submodules: cli.filter.include_submodules || config.filter.include_submodules.unwrap_or(false),
+        include_vendored: cli.filter.include_vendored
+            || config.filter.include_vendored.unwrap_or(false),
+        include_generated: cli.filter.include_generated
+            || config.filter.include_generated.unwrap_or(false),
+        include_submodules: cli.filter.include_submodules
+            || config.filter.include_submodules.unwrap_or(false),
         include,
         exclude,
     };
