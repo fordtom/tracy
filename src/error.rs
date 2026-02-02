@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+use crate::config::ConfigError;
 use crate::filter::FilterError;
 use crate::git::GitError;
 use crate::scan::ScanError;
@@ -15,6 +16,9 @@ pub enum TracyError {
     #[error(transparent)]
     Git(#[from] GitError),
 
+    #[error(transparent)]
+    Config(#[from] ConfigError),
+
     #[error("failed to serialize output: {0}")]
     Serialize(#[from] serde_json::Error),
 
@@ -23,4 +27,7 @@ pub enum TracyError {
 
     #[error("no matches found")]
     NoResults,
+
+    #[error("no slugs specified (use --slug or set [scan].slug in tracy.toml)")]
+    NoSlugs,
 }

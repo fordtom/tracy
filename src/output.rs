@@ -1,9 +1,10 @@
 use crate::git::GitMeta;
 use crate::scan::{Entry, ScanResult};
 use clap::ValueEnum;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, ValueEnum)]
+#[serde(rename_all = "lowercase")]
 pub enum OutputFormat {
     Json,
     Jsonl,

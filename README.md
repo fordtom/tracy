@@ -8,6 +8,8 @@ Scans codebases for requirement references in comments and outputs JSON.
 tracy --slug REQ --root .
 ```
 
+If `tracy.toml` is present (searched from the current directory upwards), Tracy will load it by default. CLI flags override config.
+
 Finds `{SLUG}-{NUMBER}` formatted references in comments across your codebase, returning JSON keyed by requirement id. Repeat `--slug` to match multiple prefixes.
 
 Example (single hit):
@@ -36,8 +38,10 @@ Each entry may also include `above`, `below`, `inline`, and `scope` context fiel
 | Flag                   | Description                                    |
 | ---------------------- | ---------------------------------------------- |
 | `--slug`, `-s`         | Slug pattern to match (e.g., `REQ`, `LIN`)     |
-| `--root`               | Root directory to scan (default: `.`)          |
+| `--root`               | Root directory to scan (default: config dir or `.`) |
 | `--format`             | Output format (`json`, `jsonl`, `csv`, `sarif`) |
+| `--config`             | Path to config file (default: search for `tracy.toml`) |
+| `--no-config`          | Disable config file loading                    |
 | `--output`, `-o`       | Write output to file                           |
 | `--quiet`, `-q`        | Suppress stdout output                         |
 | `--fail-on-empty`      | Exit with error if no matches found            |
@@ -45,6 +49,24 @@ Each entry may also include `above`, `below`, `inline`, and `scope` context fiel
 | `--include-vendored`   | Include vendored files (per `.gitattributes`)  |
 | `--include-generated`  | Include generated files (per `.gitattributes`) |
 | `--include-submodules` | Include git submodules                         |
+| `--include`            | Only include paths matching this glob (repeatable) |
+| `--exclude`            | Exclude paths matching this glob (repeatable)  |
+
+## Config
+
+Create a `tracy.toml` at your repo root (or pass `--config path`):
+
+```toml
+format = "sarif"
+include_git_meta = true
+
+[scan]
+slug = ["REQ"]
+
+[filter]
+include = ["src/**"]
+exclude = ["**/generated/**"]
+```
 
 ## Supported Languages
 

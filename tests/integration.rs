@@ -11,6 +11,8 @@ fn run_scan(include_vendored: bool, include_generated: bool) -> BTreeMap<String,
         include_vendored,
         include_generated,
         include_submodules: false,
+        include: Vec::new(),
+        exclude: Vec::new(),
     };
     let scan_args = tracy::scan::ScanArgs {
         slug: vec!["REQ".to_string()],
