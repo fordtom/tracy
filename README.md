@@ -2,6 +2,11 @@
 
 Scans codebases for requirement references in comments and outputs JSON.
 
+Docs:
+
+- [CLI](docs/cli.md)
+- [Config](docs/config.md)
+
 ## Usage
 
 ```bash
