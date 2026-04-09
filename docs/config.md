@@ -19,6 +19,7 @@ include_blame = true
 slug = ["REQ"]
 
 [filter]
+git_attr_source = "index"
 include = ["src/**"]
 exclude = ["**/generated/**"]
 ```
@@ -44,5 +45,9 @@ Top-level:
 - `include_vendored` (bool)
 - `include_generated` (bool)
 - `include_submodules` (bool)
+- `git_attr_source` (`worktree|index`): Git attribute source for vendored/generated detection
 - `include` (string array, glob)
 - `exclude` (string array, glob)
+
+Vendored/generated filtering is Git-backed. When Tracy needs to resolve those
+attributes, the scan root must be inside a Git repository.

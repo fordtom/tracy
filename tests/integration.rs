@@ -14,6 +14,7 @@ fn run_scan(
         include_vendored,
         include_generated,
         include_submodules: false,
+        git_attr_source: None,
         include: Vec::new(),
         exclude: Vec::new(),
     };

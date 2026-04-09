@@ -55,9 +55,10 @@ still returned, but without a `blame` field.
 | `--fail-on-empty`      | Exit with error if no matches found            |
 | `--include-git-meta`   | Include git repository metadata in output      |
 | `--include-blame`      | Include git blame metadata when resolvable; omit it for untracked or otherwise unblamable files |
-| `--include-vendored`   | Include vendored files (per `.gitattributes`)  |
-| `--include-generated`  | Include generated files (per `.gitattributes`) |
+| `--include-vendored`   | Include files marked `linguist-vendored` by Git |
+| `--include-generated`  | Include files marked `linguist-generated` by Git |
 | `--include-submodules` | Include git submodules                         |
+| `--git-attr-source`    | Git attribute source for vendored/generated detection (`worktree` or `index`) |
 | `--include`            | Only include paths matching this glob (repeatable) |
 | `--exclude`            | Exclude paths matching this glob (repeatable)  |
 
@@ -74,11 +75,15 @@ include_blame = true
 slug = ["REQ"]
 
 [filter]
+git_attr_source = "index"
 include = ["src/**"]
 exclude = ["**/generated/**"]
 ```
 
 ## Supported Languages
+
+Vendored/generated filtering is Git-backed. If Tracy needs to resolve those
+attributes, the scan root must be inside a Git repository.
 
 All languages supported by [ast-grep](https://ast-grep.github.io/guide/introduction.html#supported-languages), including Rust, TypeScript, JavaScript, Python, Go, Java, C, C++, and more.
 

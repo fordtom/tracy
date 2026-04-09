@@ -30,9 +30,13 @@ tracy --slug REQ --root .
 
 - `--include <GLOB>` (repeatable): allowlist
 - `--exclude <GLOB>` (repeatable): blocklist
-- `--include-vendored`: include `.gitattributes` `linguist-vendored`
-- `--include-generated`: include `.gitattributes` `linguist-generated`
+- `--include-vendored`: include files marked `linguist-vendored`
+- `--include-generated`: include files marked `linguist-generated`
 - `--include-submodules`: include submodules
+- `--git-attr-source <worktree|index>`: resolve vendored/generated attributes from the working tree (default) or Git index
+
+Vendored/generated filtering is Git-backed. When Tracy needs to resolve those
+attributes, the scan root must be inside a Git repository.
 
 ## Examples
 
