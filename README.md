@@ -37,6 +37,9 @@ Example (single hit):
 ```
 
 Each entry may also include `above`, `below`, `inline`, and `scope` context fields when available.
+When `--include-blame` is enabled, Tracy adds `blame` metadata when `git blame`
+can resolve that line. Matches in untracked files or other unblamable paths are
+still returned, but without a `blame` field.
 
 ## Options
 
@@ -51,7 +54,7 @@ Each entry may also include `above`, `below`, `inline`, and `scope` context fiel
 | `--quiet`, `-q`        | Suppress stdout output                         |
 | `--fail-on-empty`      | Exit with error if no matches found            |
 | `--include-git-meta`   | Include git repository metadata in output      |
-| `--include-blame`      | Include git blame metadata for each match      |
+| `--include-blame`      | Include git blame metadata when resolvable; omit it for untracked or otherwise unblamable files |
 | `--include-vendored`   | Include vendored files (per `.gitattributes`)  |
 | `--include-generated`  | Include generated files (per `.gitattributes`) |
 | `--include-submodules` | Include git submodules                         |

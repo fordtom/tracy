@@ -24,7 +24,7 @@ tracy --slug REQ --root .
 ## Git metadata (optional)
 
 - `--include-git-meta`: top-level `meta` in JSON; extra columns in CSV; run-level properties in SARIF
-- `--include-blame`: per-match `blame` object (commit/author/time/summary)
+- `--include-blame`: per-match `blame` object (commit/author/time/summary) when resolvable; omitted for untracked or otherwise unblamable files
 
 ## Filtering
 
@@ -47,4 +47,3 @@ JSONL for streaming ingestion:
 ```bash
 tracy -s REQ --format jsonl --include-git-meta
 ```
-

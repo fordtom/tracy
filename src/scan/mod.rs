@@ -50,7 +50,7 @@ pub fn scan_files(
     args: &ScanArgs,
 ) -> Result<ScanResult, ScanError> {
     let slugs: Vec<String> = args.slug.iter().map(|s| regex::escape(s)).collect();
-    let pattern = Regex::new(&format!(r"(?:{})-\d+", slugs.join("|")))?;
+    let pattern = Regex::new(&format!(r"\b((?:{})-\d+)\b", slugs.join("|")))?;
     let mut results: ScanResult = BTreeMap::new();
 
     for path in paths {
@@ -93,8 +93,11 @@ fn scan_file(
         let line = line_0indexed + 1; // Convert to 1-indexed for output
         let text = node.text().to_string();
 
-        for m in pattern.find_iter(&text) {
-            let slug = m.as_str().to_string();
+        for captures in pattern.captures_iter(&text) {
+            let Some(slug_match) = captures.get(1) else {
+                continue;
+            };
+            let slug = slug_match.as_str().to_string();
 
             if seen.insert((slug.clone(), line)) {
                 // Extract block context (above/below/inline code)
@@ -388,8 +391,16 @@ def foo(): pass"#,
         let root = file.path().parent().unwrap();
         let results = scan_files(root, &[file.path().to_path_buf()], &scan_args("REQ")).unwrap();
 
-        // "REQ-123" should still match within "MYREQ-123"
-        assert!(results.contains_key("REQ-123"));
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn ignores_substring_match_in_different_slug() {
+        let file = create_temp_file(".rs", "/// FREQ-123: different slug\nfn x() {}");
+        let root = file.path().parent().unwrap();
+        let results = scan_files(root, &[file.path().to_path_buf()], &scan_args("REQ")).unwrap();
+
+        assert!(results.is_empty());
     }
 
     #[test]
