@@ -2,9 +2,11 @@
 
 ## Discovery
 
-- Default: search for `tracy.toml` from CWD upward
+- Default: search for `tracy.toml` from the scan start upward
 - Override: `--config path/to/tracy.toml`
 - Disable: `--no-config`
+
+The scan start is `--root` when provided, otherwise the current directory.
 
 CLI overrides config.
 
