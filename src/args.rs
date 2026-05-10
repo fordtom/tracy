@@ -112,6 +112,7 @@ pub fn resolve_args(
             || config.filter.include_generated.unwrap_or(false),
         include_submodules: cli.filter.include_submodules
             || config.filter.include_submodules.unwrap_or(false),
+        git_attr_source: cli.filter.git_attr_source.or(config.filter.git_attr_source),
         include,
         exclude,
     };

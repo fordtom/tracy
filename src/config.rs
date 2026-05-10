@@ -1,3 +1,4 @@
+use crate::filter::GitAttrSource;
 use crate::output::OutputFormat;
 use serde::Deserialize;
 use std::fs;
@@ -29,6 +30,7 @@ pub struct FilterConfig {
     pub include_vendored: Option<bool>,
     pub include_generated: Option<bool>,
     pub include_submodules: Option<bool>,
+    pub git_attr_source: Option<GitAttrSource>,
     pub include: Option<Vec<String>>,
     pub exclude: Option<Vec<String>>,
 }
@@ -105,6 +107,7 @@ quiet = true
 [scan]
 slug = ["REQ"]
 [filter]
+git_attr_source = "index"
 include = ["src/**"]
 "#,
         )
@@ -114,6 +117,7 @@ include = ["src/**"]
         assert_eq!(config.format, Some(OutputFormat::Jsonl));
         assert_eq!(config.quiet, Some(true));
         assert_eq!(config.scan.slug.as_deref(), Some(&["REQ".to_string()][..]));
+        assert_eq!(config.filter.git_attr_source, Some(GitAttrSource::Index));
         assert_eq!(
             config.filter.include.as_deref(),
             Some(&["src/**".to_string()][..])

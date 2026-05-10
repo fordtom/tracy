@@ -306,3 +306,32 @@ fn include_blame_populates_commit_ids() {
     assert_eq!(blame_1, first_sha);
     assert_eq!(blame_2, second_sha);
 }
+
+#[test]
+fn include_blame_skips_untracked_files() {
+    let repo = init_repo();
+    write_file(repo.path(), "src/tracked.rs", "// REQ-1: tracked\n");
+    commit_all(repo.path(), "init");
+    write_file(repo.path(), "src/untracked.rs", "// REQ-2: untracked\n");
+
+    let out = run_tracy(
+        repo.path(),
+        &[
+            "--no-config",
+            "--root",
+            repo.path().to_str().unwrap(),
+            "--slug",
+            "REQ",
+            "--include-blame",
+        ],
+    );
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert!(value["REQ-1"][0]["blame"].is_object());
+    assert!(value["REQ-2"][0].get("blame").is_none());
+}

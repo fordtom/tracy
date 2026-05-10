@@ -24,15 +24,19 @@ tracy --slug REQ --root .
 ## Git metadata (optional)
 
 - `--include-git-meta`: top-level `meta` in JSON; extra columns in CSV; run-level properties in SARIF
-- `--include-blame`: per-match `blame` object (commit/author/time/summary)
+- `--include-blame`: per-match `blame` object (commit/author/time/summary) when resolvable; omitted for untracked or otherwise unblamable files
 
 ## Filtering
 
 - `--include <GLOB>` (repeatable): allowlist
 - `--exclude <GLOB>` (repeatable): blocklist
-- `--include-vendored`: include `.gitattributes` `linguist-vendored`
-- `--include-generated`: include `.gitattributes` `linguist-generated`
+- `--include-vendored`: include files marked `linguist-vendored`
+- `--include-generated`: include files marked `linguist-generated`
 - `--include-submodules`: include submodules
+- `--git-attr-source <worktree|index>`: resolve vendored/generated attributes from the working tree (default) or Git index
+
+Vendored/generated filtering is Git-backed. When Tracy needs to resolve those
+attributes, the scan root must be inside a Git repository.
 
 ## Examples
 
@@ -47,4 +51,3 @@ JSONL for streaming ingestion:
 ```bash
 tracy -s REQ --format jsonl --include-git-meta
 ```
-

@@ -1,17 +1,13 @@
 pub mod args;
 mod error;
+mod git_attrs;
 
-pub use args::FilterArgs;
+pub use args::{FilterArgs, GitAttrSource};
 pub use error::FilterError;
 
+use git_attrs::resolve_git_attributes;
 use ignore::WalkBuilder;
-use std::fs;
 use std::path::{Path, PathBuf};
-
-struct Excludes {
-    vendored: Vec<glob::Pattern>,
-    generated: Vec<glob::Pattern>,
-}
 
 struct GlobFilters {
     include: Vec<glob::Pattern>,
@@ -19,9 +15,8 @@ struct GlobFilters {
 }
 
 pub fn collect_files(root: &Path, args: &FilterArgs) -> Result<Vec<PathBuf>, FilterError> {
-    let excludes = parse_gitattributes(root);
     let filters = parse_globs(args)?;
-    let mut files = Vec::new();
+    let mut candidates = Vec::new();
 
     for entry in WalkBuilder::new(root)
         .git_ignore(true)
@@ -37,15 +32,28 @@ pub fn collect_files(root: &Path, args: &FilterArgs) -> Result<Vec<PathBuf>, Fil
         }
 
         let path = entry.path();
-
-        if is_excluded(path, root, &excludes, &filters, args) {
+        if is_glob_excluded(path, root, &filters) {
             continue;
         }
 
-        files.push(path.to_path_buf());
+        candidates.push(path.to_path_buf());
     }
 
-    Ok(files)
+    if args.include_vendored && args.include_generated {
+        return Ok(candidates);
+    }
+
+    let attr_flags = resolve_git_attributes(root, &candidates, args)?;
+    Ok(candidates
+        .into_iter()
+        .filter(|path| {
+            let excluded = attr_flags.get(path).is_some_and(|flags| {
+                (!args.include_vendored && flags.vendored)
+                    || (!args.include_generated && flags.generated)
+            });
+            !excluded
+        })
+        .collect())
 }
 
 fn parse_globs(args: &FilterArgs) -> Result<GlobFilters, FilterError> {
@@ -74,59 +82,7 @@ fn parse_globs(args: &FilterArgs) -> Result<GlobFilters, FilterError> {
     Ok(GlobFilters { include, exclude })
 }
 
-fn parse_gitattributes(root: &Path) -> Excludes {
-    let attr_path = root.join(".gitattributes");
-    let Ok(content) = fs::read_to_string(&attr_path) else {
-        return Excludes {
-            vendored: Vec::new(),
-            generated: Vec::new(),
-        };
-    };
-
-    let mut vendored = Vec::new();
-    let mut generated = Vec::new();
-
-    for line in content.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-
-        let Some(pattern_str) = line.split_whitespace().next() else {
-            continue;
-        };
-
-        let Ok(pattern) = glob::Pattern::new(pattern_str) else {
-            continue;
-        };
-
-        let is_vendored = line.contains("linguist-vendored");
-        let is_generated = line.contains("linguist-generated");
-
-        match (is_vendored, is_generated) {
-            (true, true) => {
-                vendored.push(pattern.clone());
-                generated.push(pattern);
-            }
-            (true, false) => vendored.push(pattern),
-            (false, true) => generated.push(pattern),
-            (false, false) => {}
-        }
-    }
-
-    Excludes {
-        vendored,
-        generated,
-    }
-}
-
-fn is_excluded(
-    path: &Path,
-    root: &Path,
-    excludes: &Excludes,
-    filters: &GlobFilters,
-    args: &FilterArgs,
-) -> bool {
+fn is_glob_excluded(path: &Path, root: &Path, filters: &GlobFilters) -> bool {
     let Ok(relative) = path.strip_prefix(root) else {
         return false;
     };
@@ -136,117 +92,52 @@ fn is_excluded(
         return true;
     }
 
-    if filters.exclude.iter().any(|p| p.matches(&relative_str)) {
-        return true;
-    }
-
-    if !args.include_vendored && excludes.vendored.iter().any(|p| p.matches(&relative_str)) {
-        return true;
-    }
-
-    if !args.include_generated && excludes.generated.iter().any(|p| p.matches(&relative_str)) {
-        return true;
-    }
-
-    false
+    filters.exclude.iter().any(|p| p.matches(&relative_str))
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use std::path::Path;
-
-    fn fixture_root() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
-    }
-
-    #[test]
-    fn parse_gitattributes_finds_vendored_patterns() {
-        let excludes = parse_gitattributes(&fixture_root());
-        assert_eq!(excludes.vendored.len(), 2);
-        assert!(excludes.vendored[0].matches("vendor/foo/bar.rs"));
-        assert!(excludes.vendored[1].matches("third_party/lib.c"));
-    }
-
-    #[test]
-    fn parse_gitattributes_finds_generated_patterns() {
-        let excludes = parse_gitattributes(&fixture_root());
-        assert_eq!(excludes.generated.len(), 2);
-        assert!(excludes.generated[0].matches("foo.generated.rs"));
-        assert!(excludes.generated[1].matches("src/gen/types.rs"));
-    }
-
-    #[test]
-    fn is_excluded_respects_vendored_flag() {
-        let excludes = parse_gitattributes(&fixture_root());
-        let filters = parse_globs(&FilterArgs::default()).unwrap();
-        let root = Path::new("/repo");
-        let path = Path::new("/repo/vendor/dep/lib.rs");
-
-        let args_exclude = FilterArgs::default();
-        assert!(is_excluded(path, root, &excludes, &filters, &args_exclude));
-
-        let args_include = FilterArgs {
-            include_vendored: true,
-            ..Default::default()
-        };
-        assert!(!is_excluded(path, root, &excludes, &filters, &args_include));
-    }
-
-    #[test]
-    fn is_excluded_respects_generated_flag() {
-        let excludes = parse_gitattributes(&fixture_root());
-        let filters = parse_globs(&FilterArgs::default()).unwrap();
-        let root = Path::new("/repo");
-        let path = Path::new("/repo/types.generated.rs");
-
-        let args_exclude = FilterArgs::default();
-        assert!(is_excluded(path, root, &excludes, &filters, &args_exclude));
-
-        let args_include = FilterArgs {
-            include_generated: true,
-            ..Default::default()
-        };
-        assert!(!is_excluded(path, root, &excludes, &filters, &args_include));
-    }
+    use tempfile::TempDir;
 
     #[test]
     fn include_globs_filter_paths() {
-        let excludes = Excludes {
-            vendored: Vec::new(),
-            generated: Vec::new(),
-        };
+        let filters = parse_globs(&FilterArgs {
+            include: vec!["src/**".to_string()],
+            ..Default::default()
+        })
+        .unwrap();
         let root = Path::new("/repo");
         let path_in = Path::new("/repo/src/main.rs");
         let path_out = Path::new("/repo/tests/test.rs");
 
-        let args = FilterArgs {
-            include: vec!["src/**".to_string()],
-            ..Default::default()
-        };
-        let filters = parse_globs(&args).unwrap();
-
-        assert!(!is_excluded(path_in, root, &excludes, &filters, &args));
-        assert!(is_excluded(path_out, root, &excludes, &filters, &args));
+        assert!(!is_glob_excluded(path_in, root, &filters));
+        assert!(is_glob_excluded(path_out, root, &filters));
     }
 
     #[test]
     fn exclude_globs_filter_paths() {
-        let excludes = Excludes {
-            vendored: Vec::new(),
-            generated: Vec::new(),
-        };
+        let filters = parse_globs(&FilterArgs {
+            exclude: vec!["src/gen/**".to_string()],
+            ..Default::default()
+        })
+        .unwrap();
         let root = Path::new("/repo");
         let path_in = Path::new("/repo/src/main.rs");
         let path_out = Path::new("/repo/src/gen/types.rs");
 
-        let args = FilterArgs {
-            exclude: vec!["src/gen/**".to_string()],
-            ..Default::default()
-        };
-        let filters = parse_globs(&args).unwrap();
+        assert!(!is_glob_excluded(path_in, root, &filters));
+        assert!(is_glob_excluded(path_out, root, &filters));
+    }
 
-        assert!(!is_excluded(path_in, root, &excludes, &filters, &args));
-        assert!(is_excluded(path_out, root, &excludes, &filters, &args));
+    #[test]
+    fn collect_files_requires_git_repo_for_attribute_filtering() {
+        let dir = TempDir::new().unwrap();
+        fs::create_dir_all(dir.path().join("src")).unwrap();
+        fs::write(dir.path().join("src/lib.rs"), "// REQ-1\n").unwrap();
+
+        let err = collect_files(dir.path(), &FilterArgs::default()).unwrap_err();
+        assert!(matches!(err, FilterError::GitRepoRequired { .. }));
     }
 }

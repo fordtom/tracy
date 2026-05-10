@@ -7,13 +7,13 @@ Docs:
 - [CLI](docs/cli.md)
 - [Config](docs/config.md)
 
-## Usage
+## Getting Started
 
 ```bash
 tracy --slug REQ --root .
 ```
 
-If `tracy.toml` is present (searched from the current directory upwards), Tracy will load it by default. CLI flags override config.
+If `tracy.toml` is present, Tracy loads it by default. When `--root` is set, config discovery starts from that path and walks upward; otherwise discovery starts from the current directory. CLI flags override config.
 
 Finds `{SLUG}-{NUMBER}` formatted references in comments across your codebase, returning JSON keyed by requirement id. Repeat `--slug` to match multiple prefixes.
 
@@ -37,45 +37,19 @@ Example (single hit):
 ```
 
 Each entry may also include `above`, `below`, `inline`, and `scope` context fields when available.
+When `--include-blame` is enabled, Tracy adds `blame` metadata when `git blame`
+can resolve that line. Matches in untracked files or other unblamable paths are
+still returned, but without a `blame` field.
 
-## Options
+`--output` writes the same report to a file. Tracy still prints to stdout unless
+you also pass `--quiet`.
 
-| Flag                   | Description                                    |
-| ---------------------- | ---------------------------------------------- |
-| `--slug`, `-s`         | Slug pattern to match (e.g., `REQ`, `LIN`)     |
-| `--root`               | Root directory to scan (default: config dir or `.`) |
-| `--format`             | Output format (`json`, `jsonl`, `csv`, `sarif`) |
-| `--config`             | Path to config file (default: search for `tracy.toml`) |
-| `--no-config`          | Disable config file loading                    |
-| `--output`, `-o`       | Write output to file                           |
-| `--quiet`, `-q`        | Suppress stdout output                         |
-| `--fail-on-empty`      | Exit with error if no matches found            |
-| `--include-git-meta`   | Include git repository metadata in output      |
-| `--include-blame`      | Include git blame metadata for each match      |
-| `--include-vendored`   | Include vendored files (per `.gitattributes`)  |
-| `--include-generated`  | Include generated files (per `.gitattributes`) |
-| `--include-submodules` | Include git submodules                         |
-| `--include`            | Only include paths matching this glob (repeatable) |
-| `--exclude`            | Exclude paths matching this glob (repeatable)  |
-
-## Config
-
-Create a `tracy.toml` at your repo root (or pass `--config path`):
-
-```toml
-format = "sarif"
-include_git_meta = true
-include_blame = true
-
-[scan]
-slug = ["REQ"]
-
-[filter]
-include = ["src/**"]
-exclude = ["**/generated/**"]
-```
+See [docs/cli.md](docs/cli.md) for the full CLI reference and [docs/config.md](docs/config.md) for the full `tracy.toml` schema.
 
 ## Supported Languages
+
+Vendored/generated filtering is Git-backed. If Tracy needs to resolve those
+attributes, the scan root must be inside a Git repository.
 
 All languages supported by [ast-grep](https://ast-grep.github.io/guide/introduction.html#supported-languages), including Rust, TypeScript, JavaScript, Python, Go, Java, C, C++, and more.
 
