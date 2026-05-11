@@ -183,7 +183,7 @@ jobs:
         run: |
           CRATE="${{ steps.metadata.outputs.name }}"
           VERSION="${{ steps.metadata.outputs.version }}"
-          if curl -fsSL "https://crates.io/api/v1/crates/${CRATE}/${VERSION}" >/dev/null; then
+          if curl -fsSL -H "User-Agent: tracy-release-workflow" "https://crates.io/api/v1/crates/${CRATE}/${VERSION}" >/dev/null; then
             echo "published=true" >> "$GITHUB_OUTPUT"
             echo "${CRATE} ${VERSION} is already published."
           else
