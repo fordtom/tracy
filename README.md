@@ -46,6 +46,19 @@ you also pass `--quiet`.
 
 See [docs/cli.md](docs/cli.md) for the full CLI reference and [docs/config.md](docs/config.md) for the full `tracy.toml` schema.
 
+## Development
+
+Install a stable Rust toolchain with [rustup](https://rustup.rs/), then use cargo:
+
+```bash
+rustup toolchain install stable
+cargo build
+cargo test
+cargo clippy
+```
+
+Release binaries are built with cargo and [cross](https://github.com/cross-rs/cross) in GitHub Actions.
+
 ## Supported Languages
 
 Vendored/generated filtering is Git-backed. If Tracy needs to resolve those
