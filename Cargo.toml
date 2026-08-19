@@ -9,7 +9,7 @@ repository = "https://github.com/tomrford/tracy"
 categories = ["command-line-utilities"]
 keywords = ["traceability", "requirements", "tracing"]
 
-exclude = [".envrc", ".cursor/**", ".github/**"]
+exclude = [".cursor/**", ".github/**"]
 
 [[bin]]
 name = "tracy"
