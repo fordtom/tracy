@@ -4,7 +4,7 @@ CI traceability scanner - scans codebases for requirement references in comments
 
 ## Stack
 
-- Rust single binary
+- Rust single binary (rustup stable + cargo)
 - `ast-grep-core` for multi-language AST parsing
 - `ignore` crate for Git-aware file traversal
 - `clap` for CLI
