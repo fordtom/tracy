@@ -410,7 +410,7 @@ pub fn extract_hierarchy<D: Doc>(root: &Node<D>, target_line: usize) -> Vec<Scop
     }
 
     // Sort by line number descending (innermost first)
-    scopes.sort_by(|a, b| b.line.cmp(&a.line));
+    scopes.sort_by_key(|scope| std::cmp::Reverse(scope.line));
     scopes
 }
 
